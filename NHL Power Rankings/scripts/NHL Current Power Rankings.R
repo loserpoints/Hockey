@@ -1,14 +1,20 @@
+###### load required packages
+
 library(tidyverse)
 library(rvest)
 library(BradleyTerry2)
-library(reshape2)
 library(ggthemes)
 library(scales)
 library(ggalt)
 library(extrafont)
 
 
+###### run function to generate power rankings and associated plots
+
 power.rankings <- get.power.rankings()
+
+
+###### define function to generate power rankings and associated plots
 
 get.power.rankings <- function(x) {
 
@@ -82,14 +88,15 @@ data_all <- rbind(data_5v5, data_5v4, data_4v5) %>%
   mutate(outcome_goals = GF/(GF + GA),
          outcome_xG = xGF/(xGF + xGA))
 
+
 #### get ability estimates
 
 ### fit goals model
-fit.goals <- BTm(outcome = outcome_goals, formula = ~team + home, player1 = team, player2 = opp, id = "team", data = data_all) 
+fit_goals <- BTm(outcome = outcome_goals, formula = ~team + home, player1 = team, player2 = opp, id = "team", data = data_all) 
 
 
 ### get goal ability estimates
-abilities.goals <- as.data.frame(BTabilities(fit.goals)) %>%
+abilities_goals <- as.data.frame(BTabilities(fit_goals)) %>%
   
   mutate(team = row.names(.)) %>%
   
@@ -99,11 +106,11 @@ abilities.goals <- as.data.frame(BTabilities(fit.goals)) %>%
 
 
 ###fit xG model
-fit.xG <- BTm(outcome = outcome_xG, formula = ~team + home, player1 = team, player2 = opp, id = "team", data = data_all) 
+fit_xG <- BTm(outcome = outcome_xG, formula = ~team + home, player1 = team, player2 = opp, id = "team", data = data_all) 
 
 
 ### get xG ability estimates
-abilities.xG <- as.data.frame(BTabilities(fit.xG)) %>%
+abilities_xG <- as.data.frame(BTabilities(fit_xG)) %>%
   
   mutate(team = row.names(.)) %>%
   
@@ -113,17 +120,9 @@ abilities.xG <- as.data.frame(BTabilities(fit.xG)) %>%
 
 
 ### merge goal and xG ability estimates
-abilities <- merge(
+abilities <- 
   
-  abilities.goals,
-  
-  abilities.xG,
-  
-  by.x = c("team"),
-  
-  by.y = c("team")
-  
-) %>%
+  left_join( abilities_goals, abilities_xG, by = c("team")) %>%
   
   arrange(ability_xG) %>%
   
@@ -131,9 +130,9 @@ abilities <- merge(
 
 
 ## create separate df for legend
-abilities.legend <- melt(abilities, id = c("team")) %>%
+abilities_legend <- abilities %>%
   
-  rename(metric = variable, value = value)
+  pivot_longer(-team, names_to = "metric", values_to = "value")
 
 
 ## load extra fonts
@@ -143,7 +142,7 @@ loadfonts(device = "win")
 #### plot xG and goal power rankings
 ggplot(abilities, aes(y = team)) +
   
-  geom_point(data = abilities.legend, aes(x = value, color = metric)) +
+  geom_point(data = abilities_legend, aes(x = value, color = metric)) +
   
   geom_dumbbell(aes(x = ability_xG, xend = ability_goals), color = "gray81", colour_x = "dodgerblue3", colour_xend = "darkorange2", size = 1.5, size_x = 5, size_xend = 3) +
   
@@ -166,7 +165,7 @@ ggplot(abilities, aes(y = team)) +
         legend.title = element_blank(),
         legend.text = element_text(size = 14, family = "Trebuchet MS"))
 
-ggsave("nhl_power_rankings_current.png", height = 10.333, width = 21.666)
+ggsave("viz/nhl_power_rankings_current.png", height = 10.666, width = 21.333)
 
 return(abilities)
 
@@ -205,14 +204,14 @@ gbg <- rbind(data_5v5, data_5v4, data_4v5) %>%
   mutate(goal_diff = GF - GA,
          xG_diff = xGF - xGA) %>%
   
-  left_join(., power.rankings, by = c("opp" = "team"))
+  left_join(., abilities, by = c("opp" = "team"))
 
 
 ### reorder team factor by xG power ranking
 
 gbg_diffs <- gbg %>%
   
-  mutate(team = factor(team, levels = rev(power.rankings$team)))
+  mutate(team = factor(team, levels = rev(abilities$team)))
 
 
 #### plot xG and goal diff outcome distributions
@@ -250,7 +249,7 @@ ggplot(gbg_diffs) +
         legend.position = "bottom",
         legend.spacing = unit(2, "cm"))
 
-ggsave("nhl_game_result_distros.png", height = 10.333, width = 21.666)
+ggsave("viz/nhl_game_result_distros.png", height = 10.666, width = 21.333)
 
 
 ### reorder team factor by xG power ranking
@@ -309,7 +308,7 @@ ggplot(gbg_sked_strength) +
         legend.spacing = unit(2, "cm"))
 
 
-ggsave("nhl_schedule_strength_distributions.png", height = 10.333, width = 21.666)
+ggsave("viz/nhl_schedule_strength_distributions.png", height = 10.666, width = 21.333)
 
 
 #### plot relationships between team quality and outcomes
@@ -338,7 +337,7 @@ ggplot(gbg, aes(ability_xG, xG_diff)) +
         strip.text = element_text(size = 16, color = "white", face = "bold", family = "Trebuchet MS"))
 
 
-ggsave("nhl_xg_diff_opp_quality.png", height = 10.333, width = 21.666)
+ggsave("viz/nhl_xg_diff_opp_quality.png", height = 10.666, width = 21.333)
 
 
 }
