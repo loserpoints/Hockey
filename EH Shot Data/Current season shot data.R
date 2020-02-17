@@ -2,7 +2,6 @@
 
 pbp_1920 <- read_csv("shots_1920.csv")
 
-
 ### add score and venue adjustments to data set
 
 score_state <- pbp_1920 %>%
