@@ -3,10 +3,27 @@
 library(stringr)
 library(ggalt)
 
+### query local mysql db for shot data
 
-### calculate goal droughts by
+shots_db <-
+  
+  dbConnect(
+    MariaDB(),
+    user = "root",
+    password = password,
+    dbname = "nhl_shots_eh",
+    host = "localhost"
+  )
 
-goal_droughts <- pbp %>%
+
+shots_query <- "SELECT * FROM shots"
+
+shots_table <- dbSendQuery(shots_db, shots_query)
+
+
+### create table with all goal droughts
+
+goal_droughts <- dbFetch(shots_table) %>%
   
   select(season, game_id, game_date, session, event_player_1, event_type, event_team, home_team, away_team, pred_goal, pred_goal_home_weight, pred_goal_away_weight) %>%
   
@@ -52,15 +69,21 @@ goal_droughts <- pbp %>%
   arrange(-drought_degree)
 
 
+### clear db connection
+
+dbClearResult(shots_table)
+
+
+### specify label positions for outlier plot
+
 goal_drought_outlier_labels <- goal_droughts %>%
   
   filter(drought_degree > 8*sd(drought_degree) + 1) %>%
   
   mutate(y_label_position = c(250, 500, 750, 1000))
-  
-  
 
-
+  
+### plot histogram of goal drought with outliers labeled
 
 ggplot(goal_droughts, aes(drought_degree)) +
   
@@ -107,8 +130,7 @@ ggsave("goal_drought_histogram.png", width = 21.333, height = 10.666)
 
 
 
-
-
+### identify location for guide line for specific player plot
 
 gourde_drought_degree <- goal_droughts %>%
   
@@ -119,6 +141,7 @@ gourde_drought_degree <- goal_droughts %>%
 gourde_drought_degree <- gourde_drought_degree$drought_degree
 
 
+### plot speicif player goal drought
 
 ggplot(goal_droughts, aes(drought_degree)) +
   
@@ -164,7 +187,7 @@ ggplot(goal_droughts, aes(drought_degree)) +
 ggsave("goal_drought_gourde.png", width = 21.333, height = 10.666)
 
 
-
+### identify top 50 goal droughts in the data set
 
 top_50_droughts <- goal_droughts %>%
   
@@ -176,12 +199,16 @@ top_50_droughts <- goal_droughts %>%
          label = factor(label, levels = label))
 
 
+### create separate data set for labelling the dumbbell plot
+
 top_50_droughts_legend <- top_50_droughts %>%
   
   select(label, drought, drought_degree) %>%
   
   pivot_longer(-label, names_to = "metric", values_to = "value")
 
+
+### generate dumbbell plot for top 50 goal droughts
 
 ggplot(top_50_droughts, aes(y = label)) +
   
@@ -210,36 +237,3 @@ ggplot(top_50_droughts, aes(y = label)) +
         legend.key.size = unit(1.25, "cm"))
 
 ggsave("top_goal_droughts.png", height = 21.333, width = 10.666)
-
-
-
-
-
-
-
-ggplot(abilities, aes(y = team)) +
-  
-  geom_point(data = abilities.legend, aes(x = value, color = metric)) +
-  
-  geom_dumbbell(aes(x = ability_xG, xend = ability_goals), color = "gray81", colour_x = "dodgerblue3", colour_xend = "darkorange2", size = 1.5, size_x = 5, size_xend = 3) +
-  
-  theme_few() +
-  
-  xlab("\nTeam Quality (scaled 0-100)") +
-  
-  ylab("Team\n") +
-  
-  ggtitle("2019-2020 NHL Power Rankings", subtitle = "Team Quality based on Bradley-Terry ability estimates\n") +
-  
-  scale_color_manual(values = c("dodgerblue3", "darkorange2"), labels = c("xG", "Goals")) +
-  
-  guides(color = guide_legend(override.aes = list(size=4))) +
-  
-  theme(axis.text = element_text(size = 14, face = "bold", family = "Trebuchet MS"),
-        axis.title = element_text(size = 18, face = "bold", family = "Trebuchet MS"),
-        plot.title = element_text(size = 22, face = "bold", family = "Trebuchet MS", hjust = 0.5),
-        plot.subtitle = element_text(size = 16, face = "italic", family = "Trebuchet MS", hjust = 0.5),
-        legend.title = element_blank(),
-        legend.text = element_text(size = 14, family = "Trebuchet MS"))
-
-ggsave("nhl_power_rankings_current.png", height = 10.333, width = 21.666)
