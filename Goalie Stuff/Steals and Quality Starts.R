@@ -11,72 +11,27 @@ library(ggrepel)
 
 loadfonts(device = "win")
 
-### load score and venue adjustments
+### query local mysql db for shot data
 
-adj <- read_csv("score_venue_adjustments.csv")
-
-### load pbp data files
-
-pbp1 <- read_csv("shots_1920.csv")
-pbp2 <- read_csv("shots_1819.csv")
-pbp3 <- read_csv("shots_1718.csv")
-pbp4 <- read_csv("shots_1617.csv")
-pbp5 <- read_csv("shots_1516.csv")
-pbp6 <- read_csv("shots_1415.csv")
-pbp7 <- read_csv("shots_1314.csv")
-pbp8 <- read_csv("shots_1213.csv")
-pbp9 <- read_csv("shots_1112.csv")
-pbp10 <- read_csv("shots_1011.csv")
-pbp11 <- read_csv("shots_0910.csv")
-pbp12 <- read_csv("shots_0809.csv")
-pbp13 <- read_csv("shots_0708.csv")
-
-### combine pbp data into one dataframe
-
-pbp <- rbind(pbp1, pbp2, pbp3, pbp4, pbp5, pbp6, pbp7, pbp8, pbp9, pbp10, pbp11, pbp12, pbp13)
-
-### create dataframe with score states to use for joining with score and venue adjustments
-
-score_state <- pbp %>%
+shots_db <-
   
-  mutate(event_id = row_number()) %>%
-  
-  select(event_id, home_score, away_score) %>%
-  
-  mutate(home_leading = ifelse(home_score > away_score, "leading", NA),
-         home_tied = ifelse(home_score == away_score, "tied", NA),
-         home_trailing = ifelse(home_score < away_score, "trailing", NA),
-         away_leading = ifelse(home_score < away_score, "leading", NA),
-         away_tied = ifelse(home_score == away_score, "tied", NA),
-         away_trailing = ifelse(home_score > away_score, "trailing", NA)) %>%
-  
-  select(-home_score, -away_score) %>%
-  
-  pivot_longer(-c(event_id, away_leading, away_tied, away_trailing), names_to = "measure", values_to = "home_score_state") %>%
-  
-  filter(!is.na(home_score_state)) %>%
-  
-  select(-measure) %>%
-  
-  pivot_longer(-c(event_id, home_score_state), names_to = "measure", values_to = "away_score_state") %>%
-  
-  filter(!is.na(away_score_state)) %>%
-  
-  select(-measure)
+  dbConnect(
+    MariaDB(),
+    user = "root",
+    password = password,
+    dbname = "nhl_shots_eh",
+    host = "localhost"
+  )
 
 
-### bind score states to pbp data and join with score and venue adjustments
+shots_query <- "SELECT * FROM shots"
 
-pbp <- cbind(pbp, score_state) %>%
-  
-  mutate(score_state = ifelse(event_team == home_team, home_score_state, away_score_state)) %>%
-  
-  left_join(adj, by = c("game_strength_state" = "strength", "score_state" = "score_state"))
+shots_table <- dbSendQuery(shots_db, shots_query)
 
 
 ### calculate game by game gsax for all games in the data set
 
-gsax <- pbp %>%
+gsax <- dbFetch(shots_table) %>%
   
   mutate(goalie = ifelse(event_team == home_team, away_goalie, home_goalie),
          team = ifelse(event_team == home_team, away_team, home_team)) %>%

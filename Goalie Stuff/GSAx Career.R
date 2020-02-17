@@ -1,60 +1,36 @@
+### load required packages
+
 library(tidyverse)
 library(ggthemes)
 library(extrafont)
-library(googledrive)
-library(googlesheets4)
+
+
+### load fonts for viz
 
 loadfonts(device = "win")
 
-adj <- read_csv("score_venue_adjustments.csv")
 
-pbp1 <- read_csv("shots_1920.csv")
-pbp2 <- read_csv("shots_1819.csv")
-pbp3 <- read_csv("shots_1718.csv")
-pbp4 <- read_csv("shots_1617.csv")
-pbp5 <- read_csv("shots_1516.csv")
-pbp6 <- read_csv("shots_1415.csv")
-pbp7 <- read_csv("shots_1314.csv")
+### query local mysql db for shot data
 
-pbp <- rbind(pbp1, pbp2, pbp3, pbp4, pbp5, pbp6, pbp7)
-
-score_state <- pbp %>%
+shots_db <-
   
-  mutate(event_id = row_number()) %>%
-  
-  select(event_id, home_score, away_score) %>%
-  
-  mutate(home_leading = ifelse(home_score > away_score, "leading", NA),
-         home_tied = ifelse(home_score == away_score, "tied", NA),
-         home_trailing = ifelse(home_score < away_score, "trailing", NA),
-         away_leading = ifelse(home_score < away_score, "leading", NA),
-         away_tied = ifelse(home_score == away_score, "tied", NA),
-         away_trailing = ifelse(home_score > away_score, "trailing", NA)) %>%
-  
-  select(-home_score, -away_score) %>%
-  
-  pivot_longer(-c(event_id, away_leading, away_tied, away_trailing), names_to = "measure", values_to = "home_score_state") %>%
-  
-  filter(!is.na(home_score_state)) %>%
-  
-  select(-measure) %>%
-  
-  pivot_longer(-c(event_id, home_score_state), names_to = "measure", values_to = "away_score_state") %>%
-  
-  filter(!is.na(away_score_state)) %>%
-  
-  select(-measure)
+  dbConnect(
+    MariaDB(),
+    user = "root",
+    password = password,
+    dbname = "nhl_shots_eh",
+    host = "localhost"
+  )
 
 
-pbp <- cbind(pbp, score_state) %>%
-  
-  mutate(score_state = ifelse(event_team == home_team, home_score_state, away_score_state)) %>%
-  
-  left_join(adj, by = c("game_strength_state" = "strength", "score_state" = "score_state"))
+shots_query <- "SELECT * FROM shots"
+
+shots_table <- dbSendQuery(shots_db, shots_query)
 
 
+### calculate adjusted xG and goal values for each shot
 
-goal_danger <- pbp %>%
+goal_danger <- dbFetch(shots_table) %>%
   
   mutate(goalie = ifelse(event_team == home_team, away_goalie, home_goalie)) %>%
   
@@ -69,7 +45,7 @@ goal_danger <- pbp %>%
   select(goalie, season, pred_goal, goal)
 
 
-
+### choose goalie to plot
 
 select_goalie <- "ANDREI.VASILEVSKIY"
 
@@ -78,7 +54,7 @@ gsax <- goal_danger %>%
   filter(goalie == select_goalie)
 
 
-
+### arrange full career data for plotting
 
 gsax_career_total <- gsax %>%
   
@@ -93,6 +69,8 @@ gsax_career_total <- gsax %>%
   ungroup()
 
 
+### arrange season by season data for plotting
+
 gsax_career_by_season <- gsax %>%
   
   mutate(gsax = pred_goal - goal) %>%
@@ -106,6 +84,7 @@ gsax_career_by_season <- gsax %>%
   ungroup()
 
 
+### plot individual goalie career gsax by shot danger
 
 ggplot(gsax_career_total, aes(pred_goal, total_gsax)) +
   
@@ -134,9 +113,7 @@ ggplot(gsax_career_total, aes(pred_goal, total_gsax)) +
 ggsave("career_gsax.png", width = 21.333, height = 10.666)
 
 
-
-
-
+### plot individual goalie career gsax by shot danger by season
 
 ggplot(gsax_career_by_season, aes(pred_goal, total_gsax)) +
   
