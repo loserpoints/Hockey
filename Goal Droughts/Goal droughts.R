@@ -3,6 +3,11 @@
 library(stringr)
 library(ggalt)
 
+### load fonts for viz
+
+loadfonts(device = "win")
+
+
 ### query local mysql db for shot data
 
 shots_db <-
