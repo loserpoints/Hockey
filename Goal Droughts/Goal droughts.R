@@ -1,7 +1,9 @@
 ### load required packages
 
+library(tidyverse)
 library(stringr)
 library(ggalt)
+library(extrafont)
 
 ### load fonts for viz
 
@@ -227,7 +229,8 @@ ggplot(top_50_droughts, aes(y = label)) +
   
   ylab("") +
   
-  ggtitle("Top 50 NHL Player Goal Droughts Since 2007-2008", subtitle = "All data via evolving-hockey.com") +
+  ggtitle("Top 50 NHL Player Goal Droughts Since 2007-2008", 
+          subtitle = "All data via evolving-hockey.com") +
   
   scale_color_manual(values = c("dodgerblue3", "gray54"), labels = c("Adj Drought\nLength", "Raw Drought\nLength")) +
   

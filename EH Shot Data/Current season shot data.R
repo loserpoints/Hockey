@@ -1,3 +1,6 @@
+library(tidyverse)
+library(RMariaDB)
+
 ### read current season data from local
 
 pbp_1920 <- read_csv("shots_1920.csv")
@@ -78,3 +81,5 @@ dbWriteTable(
   name = "shots", 
   append = TRUE 
 )
+
+file.remove(shots_1920)
