@@ -30,42 +30,39 @@ data_5v5 <- read_html(site_5v5) %>%
 
 #format data and add cumulative stats
 
-mm5v5 <- mm5v5 %>%
+mm_5v5 <- data_5v5 %>%
   
   arrange(Team, Date) %>%
   
   group_by(Team) %>%
   
-  mutate(N = row_number(), Running.ShotDiff = cumsum(CF) - cumsum(CA), Running.xGDiff = cumsum(xGF) - cumsum(xGA), Running.GoalDiff = cumsum(GF) - cumsum(GA))
+  mutate(N = row_number(), Running_ShotDiff = cumsum(CF) - cumsum(CA), Running_xGDiff = cumsum(xGF) - cumsum(xGA), Running_GoalDiff = cumsum(GF) - cumsum(GA))
 
 
 #format shots only data
 
-mm5v5.shots <- mm5v5 %>%
+mm_5v5_shots <- mm_5v5 %>%
   
   group_by(Team) %>%
   
   filter(N == max(N)) %>%
   
-  arrange(-Running.ShotDiff) %>%
+  arrange(-Running_ShotDiff) %>%
   
-  mutate(Order = row_number(), Total.ShotDiff = Running.ShotDiff) %>%
+  mutate(Order = row_number(), Total_ShotDiff = Running_ShotDiff) %>%
   
-  select(Team, Order, Total.ShotDiff) %>%
+  select(Team, Order, Total_ShotDiff) %>%
   
-  left_join(., mm5v5[c("Team", "N", "Running.ShotDiff")], by = c("Team" = "Team")) %>%
+  left_join(., mm5v5[c("Team", "N", "Running_ShotDiff")], by = c("Team" = "Team")) %>%
   
-  arrange(Order)
-
-
-#order teams
-
-mm5v5.shots$Team <- factor(mm5v5.shots$Team, levels = unique(mm5v5.shots$Team))
+  arrange(Order) %>%
+  
+  mutate(Team = factor(Team, levels = unique(Team)))
 
 
 #plot shot differential chart
 
-ggplot(mm5v5.shots, aes(x = N, y = Running.ShotDiff)) +
+ggplot(mm_5v5_shots, aes(x = N, y = Running_ShotDiff)) +
   
   geom_area(fill = "darkorange2") +
   
@@ -97,35 +94,32 @@ ggsave("Viz/mm_running_shotdiff.png", width = 21.333, height = 10.667)
 
 #format xG and goal data
 
-mm5v5.xG <- mm5v5 %>%
+mm_5v5_xG <- data_5v5 %>%
   
   group_by(Team) %>%
   
   filter(N == max(N)) %>%
   
-  arrange(-Running.xGDiff) %>%
+  arrange(-Running_xGDiff) %>%
   
-  mutate(Order = row_number(), Total.xGDiff = Running.xGDiff) %>%
+  mutate(Order = row_number(), Total_xGDiff = Running_xGDiff) %>%
   
-  select(Team, Order, Total.xGDiff) %>%
+  select(Team, Order, Total_xGDiff) %>%
   
-  left_join(., mm5v5[c("Team", "N", "Running.xGDiff", "Running.GoalDiff")], by = c("Team" = "Team")) %>%
+  left_join(., mm5v5[c("Team", "N", "Running_xGDiff", "Running_GoalDiff")], by = c("Team" = "Team")) %>%
   
-  arrange(Order)
-
-
-#order teams
-
-mm5v5.xG$Team <- factor(mm5v5.xG$Team, levels = unique(mm5v5.xG$Team))
+  arrange(Order) %>%
+  
+  mutate(Team = factor(team, levels = unique(Team)))
 
 
 #plot xG and goal differential chart
 
-ggplot(mm5v5.xG, aes(x = N, y = Running.GoalDiff, fill = "Goals")) +
+ggplot(mm_5v5_xG, aes(x = N, y = Running_GoalDiff, fill = "Goals")) +
   
   geom_area() +
   
-  geom_line(aes(x = N, y = Running.xGDiff, color = "xG"), size = 2) +
+  geom_line(aes(x = N, y = Running_xGDiff, color = "xG"), size = 2) +
   
   facet_wrap(~Team, ncol = 7) +
   
