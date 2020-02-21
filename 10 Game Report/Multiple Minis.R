@@ -36,7 +36,12 @@ mm_5v5 <- data_5v5 %>%
   
   group_by(Team) %>%
   
-  mutate(N = row_number(), Running_ShotDiff = cumsum(CF) - cumsum(CA), Running_xGDiff = cumsum(xGF) - cumsum(xGA), Running_GoalDiff = cumsum(GF) - cumsum(GA))
+  mutate(N = row_number(), 
+         Running_ShotDiff = cumsum(CF) - cumsum(CA), 
+         Running_xGDiff = cumsum(xGF) - cumsum(xGA), 
+         Running_GoalDiff = cumsum(GF) - cumsum(GA)) %>%
+  
+  ungroup()
 
 
 #format shots only data
@@ -51,9 +56,11 @@ mm_5v5_shots <- mm_5v5 %>%
   
   mutate(Order = row_number(), Total_ShotDiff = Running_ShotDiff) %>%
   
+  ungroup() %>%
+  
   select(Team, Order, Total_ShotDiff) %>%
   
-  left_join(., mm5v5[c("Team", "N", "Running_ShotDiff")], by = c("Team" = "Team")) %>%
+  left_join(., mm_5v5[c("Team", "N", "Running_ShotDiff")], by = c("Team" = "Team")) %>%
   
   arrange(Order) %>%
   
@@ -78,11 +85,11 @@ ggplot(mm_5v5_shots, aes(x = N, y = Running_ShotDiff)) +
        caption = "chart by @loserpoints") +
   
   theme(strip.background = element_rect(fill = "dodgerblue4"), 
-        strip.text = element_text(color = "white", face = "bold", size = 18),
+        strip.text = element_text(color = "white", face = "bold", size = 16),
         axis.text = element_text(face = "bold", size = 14, family = "Trebuchet MS"),
         axis.title.x = element_text(face = "bold", size = 18, family = "Trebuchet MS"), 
-        axis.title.y = element_text(face = "bold", size = 22, family = "Trebuchet MS"),
-        plot.title = element_text(face = "bold", size = 18, hjust = 0.5, family = "Trebuchet MS"),
+        axis.title.y = element_text(face = "bold", size = 18, family = "Trebuchet MS"),
+        plot.title = element_text(face = "bold", size = 22, hjust = 0.5, family = "Trebuchet MS"),
         plot.subtitle = element_text(size = 16, face = "italic", family = "Trebuchet MS", hjust = 0.5),
         plot.caption = element_text(size = 18, face = "italic", hjust = 1, margin = margin(t = 15, b = 5), family = "Trebuchet MS"))
 
@@ -94,7 +101,7 @@ ggsave("Viz/mm_running_shotdiff.png", width = 21.333, height = 10.667)
 
 #format xG and goal data
 
-mm_5v5_xG <- data_5v5 %>%
+mm_5v5_xG <- mm_5v5 %>%
   
   group_by(Team) %>%
   
@@ -104,13 +111,15 @@ mm_5v5_xG <- data_5v5 %>%
   
   mutate(Order = row_number(), Total_xGDiff = Running_xGDiff) %>%
   
+  ungroup() %>%
+  
   select(Team, Order, Total_xGDiff) %>%
   
-  left_join(., mm5v5[c("Team", "N", "Running_xGDiff", "Running_GoalDiff")], by = c("Team" = "Team")) %>%
+  left_join(., mm_5v5[c("Team", "N", "Running_xGDiff", "Running_GoalDiff")], by = c("Team" = "Team")) %>%
   
   arrange(Order) %>%
   
-  mutate(Team = factor(team, levels = unique(Team)))
+  mutate(Team = factor(Team, levels = unique(Team)))
 
 
 #plot xG and goal differential chart
@@ -140,15 +149,15 @@ ggplot(mm_5v5_xG, aes(x = N, y = Running_GoalDiff, fill = "Goals")) +
         legend.title = element_blank(),
         legend.box = "horizontal", 
         legend.position = "bottom", 
-        legend.text = element_text(size = 14, face = "bold", family = "TrebuchetMS"),
+        legend.text = element_text(size = 14, face = "bold", family = "Trebuchet MS"),
         strip.background = element_rect(fill = "dodgerblue4"), 
-        strip.text = element_text(color = "white", face = "bold", size = 18, family = "TrebuchetMS"),
-        axis.text = element_text(face = "bold", size = 14, family = "TrebuchetMS"),
-        axis.title.x = element_text(face = "bold", size = 18, family = "TrebuchetMS"),
-        axis.title.y = element_text(face = "bold", size = 18, family = "TrebuchetMS"),
-        plot.title = element_text(face = "bold", size = 22, hjust = 0.5, family = "TrebuchetMS"),
+        strip.text = element_text(color = "white", face = "bold", size = 16, family = "Trebuchet MS"),
+        axis.text = element_text(face = "bold", size = 14, family = "Trebuchet MS"),
+        axis.title.x = element_text(face = "bold", size = 18, family = "Trebuchet MS"),
+        axis.title.y = element_text(face = "bold", size = 18, family = "Trebuchet MS"),
+        plot.title = element_text(face = "bold", size = 22, hjust = 0.5, family = "Trebuchet MS"),
         plot.subtitle = element_text(size = 16, face = "italic", family = "Trebuchet MS", hjust = 0.5),
-        plot.caption = element_text(size = 18, face = "italic", hjust = 1, margin = margin(t = 15, b = 5), family = "TrebuchetMS"))
+        plot.caption = element_text(size = 18, face = "italic", hjust = 1, margin = margin(t = 15, b = 5), family = "Trebuchet MS"))
 
 
 #save plot

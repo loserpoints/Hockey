@@ -35,7 +35,7 @@ get_report_data <- function(x) {
   site_5v4 <-
     "http://naturalstattrick.com/games.php?fromseason=20192020&thruseason=20192020&stype=2&sit=5v4&loc=B&team=All&rate=n"
   
-  data_5v4 <- read_html(site_5v5) %>%
+  data_5v4 <- read_html(site_5v4) %>%
     
     html_table() %>%
     
