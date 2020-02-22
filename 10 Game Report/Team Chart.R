@@ -2,7 +2,7 @@
 ## better title spacing on final dashboard
 
 
-######### plot nhl kpi heatmap with descriptive variabile names
+######### generate single team chart with descriptive variabile names
 
 ###### load dependencies
 
