@@ -1,5 +1,7 @@
+library(RMariaDB)
 library(tidyverse)
 library(rvest)
+library(zoo)
 
 ### get toi data from evolving hockey
 
@@ -20,7 +22,7 @@ shots_db <-
 
 shots_query <- 
   
-  "SELECT * FROM shots WHERE season = 20192020"
+  "SELECT * FROM shots"
 
 
 shots_table <- dbSendQuery(shots_db, shots_query)
@@ -30,7 +32,10 @@ shots_table <- dbSendQuery(shots_db, shots_query)
 
 season_data <- dbFetch(shots_table) %>%
   
+  filter(season != 20192020) %>%
+  
   select(
+    season,
     event_team,
     game_date,
     game_id,
@@ -64,6 +69,7 @@ home_data <- season_data %>%
     ) %>%
   
   select(
+    season,
     team = event_team,
     game_date,
     game_id,
@@ -74,7 +80,7 @@ home_data <- season_data %>%
     GF = goal
   ) %>%
   
-  group_by(team, game_date, game_id, strength) %>%
+  group_by(season, team, game_date, game_id, strength) %>%
   
   summarize_all(sum, na.rm = T) %>%
   
@@ -90,6 +96,7 @@ away_data <- season_data %>%
   ) %>%
   
   select(
+    season,
     opp = event_team,
     game_date,
     game_id,
@@ -100,7 +107,7 @@ away_data <- season_data %>%
     GA = goal
   ) %>%
   
-  group_by(opp, game_date, game_id, strength) %>%
+  group_by(season, opp, game_date, game_id, strength) %>%
   
   summarize_all(sum, na.rm = T) %>%
   
@@ -109,7 +116,7 @@ away_data <- season_data %>%
 
 season_data <-
   
-  inner_join(home_data, away_data, by = c("game_date", "game_id", "strength"))
+  inner_join(home_data, away_data, by = c("season", "game_date", "game_id", "strength"))
 
 
 ### create duplicate table but reverse the direction of the metrics and strength states to swap teams
@@ -141,7 +148,7 @@ season_data_2 <- season_data %>%
          )
 
 
-season_data <- rbind(season_data, season_data_2) %>%
+gbg_data <- rbind(season_data, season_data_2) %>%
   
   select(-opp, -game_id) %>%
   
@@ -151,12 +158,102 @@ season_data <- rbind(season_data, season_data_2) %>%
   
   mutate(game_number = row_number()) %>%
   
-  group_by(team, game_date) %>%
+  group_by(season, team, game_date) %>%
   
   mutate(game_number = max(game_number)) %>% 
   
-  group_by(team, strength) %>%
+  select(-strength) %>%
   
-  mutate_at(vars(xGF:GA), .funs =list(total = ~cumsum(.)))
+  select(season, team, game_date, xGF, xGA, GF, GA) %>%
+  
+  group_by(season, team, game_date) %>%
+  
+  summarize_all(sum) %>%
+  
+  group_by(season, team) %>%
+  
+  mutate(game_number = row_number()) %>%
+  
+  filter(max(game_number) == 82) %>%
+  
+  mutate_at(vars(xGF:GA), .funs = list(before = ~rollapply(., sum, align = "right", width = game_number))) %>%
+  
+  mutate_at(vars(xGF:GA), .funs = list(after = ~rollapply(., sum, align = "left", width = 82 - game_number))) %>%
+  
+  mutate(xG_share_before = xGF_before/(xGF_before + xGA_before),
+         xG_share_after = xGF_after/(xGF_after + xGA_after),
+         goal_share_before = GF_before/(GF_before + GA_before),
+         goal_share_after = GF_after/(GF_after + GA_after)) %>%
+  
+  group_by(game_number) %>%
+  
+  mutate(xG_correlation = cor(xG_share_before, xG_share_after)^2,
+         goal_correlation = cor(goal_share_before, goal_share_after)^2) %>%
+  
+  select(game_number, xG_correlation, goal_correlation) %>%
+  
+  distinct() %>%
+  
+  mutate(ratio = xG_correlation/goal_correlation)
+  
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+group_by(season, team) %>%
+  
+  mutate_at(vars(xGF:GA), .funs =list(total = ~cumsum(.))) %>%
+  
+  mutate(goal_share_total = GF_total/(GF_total + GA_total),
+         xG_share_total = xGF_total/(xGF_total + xGA_total)) %>%
+  
+  select(season, team, game_date, goal_share_total, xG_share_total) %>%
+  
+  group_by(season, team, game_date) %>%
+  
+  mutate(n = row_number()) %>%
+  
+  filter(n == max(n)) %>%
+  
+  select(-n) %>%
+  
+  group_by(season, team) %>%
+  
+  mutate(game_number = row_number()) %>%
+  
+  filter(max(game_number) == 82) %>%
+  
+  mutate(final_goal_share = last(goal_share_total)) %>%
+  
+  group_by(game_number) %>%
+  
+  mutate(xG_correlation = cor(xG_share_total, final_goal_share),
+         goal_correlation = cor(goal_share_total, final_goal_share)) %>%
+  
+  select(game_number, xG_correlation,goal_correlation) %>%
+  
+  distinct()
          
             

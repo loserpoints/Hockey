@@ -40,9 +40,11 @@ team.toi <- report_data [2] %>%
   
   filter(Measure == "TOI_Running") %>%
   
-  pivot_wider(names_from = Strength, values_from = Season.Value) %>%
+  pivot_wider(names_from = Strength, values_from = Season_Value) %>%
   
-  select(Team, Team.4v5 = '4v5', Team.5v4 = '5v4', Team.5v5 = '5v5')
+  select(Team, Team.4v5 = '4v5', Team.5v4 = '5v4', Team.5v5 = '5v5') %>%
+  
+  mutate(Team = gsub("MON", "MTL", Team))
 
 
 #Select relevant measures
@@ -188,7 +190,7 @@ skaters.all <- skaters.all %>%
   
   mutate(N = row_number()) %>%
   
-  filter(Position == "F" & N < 404 | Position == "D" & N < 218 | Player == "ADAM.ERNE" | Player == "RYAN.CALLAHAN") %>%
+  filter(Position == "F" & N < 404 | Position == "D" & N < 218 | Player == "Carter Verhaeghe" | Player == "Mitchell Stephens" | Player == "Zach Bogosian" | Player == "Jan Rutta") %>%
   
   select(-N)
 
@@ -307,7 +309,7 @@ skaters.all$Verbose <- factor(skaters.all$Verbose, levels = unique(skaters.all$V
 
 skaters.chart <- skaters.all %>%
   
-  filter(grepl("T.B", Team) | Player == "Blake Coleman")
+  filter(grepl("T.B", Team))
 
 
 #Generate team skater KPI heat map
@@ -334,8 +336,8 @@ ggplot(skaters.chart, aes(x = Player, y = Verbose, fill = Z.Score)) +
   
   labs(caption = "data via evolving-hockey.com, chart by @loserpoints") +
   
-  scale_x_discrete(position = "top")
-  
+  scale_x_discrete(position = "top") +
+   
   theme_few() +
   
   theme(
@@ -352,4 +354,3 @@ ggplot(skaters.chart, aes(x = Player, y = Verbose, fill = Z.Score)) +
 #save plot
 
 ggsave(paste0("Viz/lightning_skater_heatmap_", Sys.Date(), ".png"), width = 21.333, height = 10.667)
-

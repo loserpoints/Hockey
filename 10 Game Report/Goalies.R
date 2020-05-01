@@ -8,6 +8,11 @@ library(ggpubr)
 library(extrafont)
 
 
+### set working directory
+
+setwd("C:/Users/Alan/Documents/R/Projects/Hockey/10 Game Report")
+
+
 ### load fonts for viz
 
 loadfonts(device = "win")

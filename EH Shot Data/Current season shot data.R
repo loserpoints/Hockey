@@ -1,6 +1,11 @@
 library(tidyverse)
 library(RMariaDB)
 
+
+### set wd
+
+setwd("C:/Users/Alan/Documents/R/Projects/Hockey/EH Shot Data")
+
 ### read current season data from local
 
 pbp_1920 <- read_csv("shots_1920.csv")

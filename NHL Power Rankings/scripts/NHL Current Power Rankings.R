@@ -9,6 +9,11 @@ library(ggalt)
 library(extrafont)
 
 
+###### set working directory
+
+setwd("C:/Users/Alan/Documents/R/Projects/Hockey/NHL Power Rankings")
+
+
 ###### run function to generate power rankings and associated plots
 
 power.rankings <- get.power.rankings()
@@ -124,7 +129,9 @@ abilities <-
   
   left_join( abilities_goals, abilities_xG, by = c("team")) %>%
   
-  arrange(ability_xG) %>%
+  mutate(ability_blended = (2.75*ability_xG + ability_goals)/3.75) %>%
+  
+  arrange(ability_blended) %>%
   
   mutate(team = factor(team, levels = team))
 
@@ -144,7 +151,11 @@ ggplot(abilities, aes(y = team)) +
   
   geom_point(data = abilities_legend, aes(x = value, color = metric)) +
   
-  geom_dumbbell(aes(x = ability_xG, xend = ability_goals), color = "gray81", colour_x = "dodgerblue3", colour_xend = "darkorange2", size = 1.5, size_x = 5, size_xend = 3) +
+  geom_dumbbell(aes(x = ability_xG, xend = ability_goals), color = "azure3", colour_x = "dodgerblue3", colour_xend = "firebrick", size = 1.5, size_x = 3, size_xend = 3) +
+  
+  geom_point(data = abilities, aes(x = ability_blended), color = "darkorchid4", size = 5) +
+  
+  geom_hline(yintercept=seq(1.5, length(unique(abilities$team))-0.5, 1), lwd=1, colour="gray90") +
   
   theme_few() +
   
@@ -154,7 +165,7 @@ ggplot(abilities, aes(y = team)) +
   
   ggtitle("2019-2020 NHL Power Rankings", subtitle = "Team Quality based on Bradley-Terry ability estimates\n") +
   
-  scale_color_manual(values = c("dodgerblue3", "darkorange2"), labels = c("xG", "Goals")) +
+  scale_color_manual(values = c("dodgerblue3", "firebrick", "darkorchid4"), labels = c("xG", "Goals", "Blended")) +
   
   guides(color = guide_legend(override.aes = list(size=4))) +
   
@@ -164,7 +175,7 @@ ggplot(abilities, aes(y = team)) +
         plot.subtitle = element_text(size = 16, face = "italic", family = "Trebuchet MS", hjust = 0.5),
         legend.title = element_blank(),
         legend.text = element_text(size = 14, family = "Trebuchet MS"))
-
+        
 ggsave("viz/nhl_power_rankings_current.png", height = 10.666, width = 21.333)
 
 return(abilities)
