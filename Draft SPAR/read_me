@@ -1,0 +1,14 @@
+###################
+##### READ ME #####
+###################
+
+The data sources used in this analysis require a subscription from Evolving Hockey.
+
+If you want to run this script, you need the following data:
+
+1) Standard skater data export for all seasons from 07-08 to 19-20 including the additional info
+
+2) SPAR skater data export for all seasons from 07-08 to 19-20
+
+If you replace the locations of those files in the code with their location on your local machine and ensure all dependencies are installed, the code should run.
+
