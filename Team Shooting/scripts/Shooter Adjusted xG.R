@@ -56,7 +56,6 @@ ggplot(team_shooting, aes(x = team)) +
   
   geom_link(aes(y = xG, yend = adjusted_xG, xend = team, color = stat(index), size = stat(index))) +
   
-  
   coord_flip() +
   
   ylab("\nExpected Goals") +
