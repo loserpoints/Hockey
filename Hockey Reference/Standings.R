@@ -7,7 +7,7 @@ library("rvest")
 ### scrape standings data from hockey reference
 
 
-years <- setdiff(1993:2019, 2005)
+years <- setdiff(2008:2020, 2005)
 
 playoffs_site <-
   paste0("https://www.hockey-reference.com/playoffs/NHL_",
